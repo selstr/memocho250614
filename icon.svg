@@ -1,8 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="512" height="512" fill="#6C63FF"/>
-    <rect x="96" y="128" width="320" height="256" rx="16" fill="white"/>
-    <rect x="128" y="176" width="256" height="24" rx="4" fill="#6C63FF"/>
-    <rect x="128" y="224" width="192" height="24" rx="4" fill="#6C63FF"/>
-    <rect x="128" y="272" width="256" height="24" rx="4" fill="#6C63FF"/>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="110" fill="#fff"/>
+  <rect width="512" height="180" rx="110" fill="#FFEB3B"/>
+  <rect y="180" width="512" height="332" fill="#fff"/>
+  <g stroke="#ccc" stroke-width="2">
+    <line x1="32" y1="210" x2="480" y2="210"/>
+    <line x1="32" y1="250" x2="480" y2="250"/>
+    <line x1="32" y1="290" x2="480" y2="290"/>
+    <line x1="32" y1="330" x2="480" y2="330"/>
+    <line x1="32" y1="370" x2="480" y2="370"/>
+    <line x1="32" y1="410" x2="480" y2="410"/>
+    <line x1="32" y1="450" x2="480" y2="450"/>
+  </g>
+  <g stroke="#bbb" stroke-width="2">
+    <line x1="32" y1="200" x2="480" y2="200"/>
+  </g>
+  <g>
+    <circle cx="48" cy="192" r="2" fill="#bbb"/>
+    <circle cx="64" cy="192" r="2" fill="#bbb"/>
+    <circle cx="80" cy="192" r="2" fill="#bbb"/>
+    <circle cx="96" cy="192" r="2" fill="#bbb"/>
+    <circle cx="112" cy="192" r="2" fill="#bbb"/>
+    <circle cx="128" cy="192" r="2" fill="#bbb"/>
+    <circle cx="144" cy="192" r="2" fill="#bbb"/>
+    <circle cx="160" cy="192" r="2" fill="#bbb"/>
+    <circle cx="176" cy="192" r="2" fill="#bbb"/>
+    <circle cx="192" cy="192" r="2" fill="#bbb"/>
+    <circle cx="208" cy="192" r="2" fill="#bbb"/>
+    <circle cx="224" cy="192" r="2" fill="#bbb"/>
+    <circle cx="240" cy="192" r="2" fill="#bbb"/>
+    <circle cx="256" cy="192" r="2" fill="#bbb"/>
+    <circle cx="272" cy="192" r="2" fill="#bbb"/>
+    <circle cx="288" cy="192" r="2" fill="#bbb"/>
+    <circle cx="304" cy="192" r="2" fill="#bbb"/>
+    <circle cx="320" cy="192" r="2" fill="#bbb"/>
+    <circle cx="336" cy="192" r="2" fill="#bbb"/>
+    <circle cx="352" cy="192" r="2" fill="#bbb"/>
+    <circle cx="368" cy="192" r="2" fill="#bbb"/>
+    <circle cx="384" cy="192" r="2" fill="#bbb"/>
+    <circle cx="400" cy="192" r="2" fill="#bbb"/>
+    <circle cx="416" cy="192" r="2" fill="#bbb"/>
+    <circle cx="432" cy="192" r="2" fill="#bbb"/>
+    <circle cx="448" cy="192" r="2" fill="#bbb"/>
+    <circle cx="464" cy="192" r="2" fill="#bbb"/>
+  </g>
 </svg> 
