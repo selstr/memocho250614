@@ -17,12 +17,27 @@
     <div class="container">
         <h1>메 모</h1>
         <p class="desc" id="currentDateTime"></p>
+        <div id="phraseArea"></div>
+        <div id="weekCalendar"></div>
         <div class="todo-input-wrap">
             <input type="text" id="todoInput" placeholder="여기에 메모를 적어주세요">
             <button id="addBtn" onclick="addTodo()">+</button>
         </div>
         <div class="todo-list" id="todoList"></div>
-        <button class="clear-btn" onclick="clearAll()">전체 삭제</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="selectall-btn" onclick="selectAllMemos()">전체 선택</button>
+            <button class="clear-btn" onclick="clearAll()">전체 삭제</button>
+        </div>
+    </div>
+    <div id="weekdayModal" class="modal-bg" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-title" id="modalTitle"></div>
+            <input type="text" id="modalInput" class="modal-input" placeholder="메모를 입력하세요">
+            <div class="modal-btns">
+                <button class="modal-btn" id="modalSaveBtn">저장</button>
+                <button class="modal-btn" id="modalCancelBtn">취소</button>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

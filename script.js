@@ -1,6 +1,7 @@
 // 할 일 데이터를 저장할 배열
 let todos = JSON.parse(localStorage.getItem('todos')) || [];
 let editingId = null;
+let weekEditingIdx = null;
 
 // 날짜와 시간을 표시하는 함수
 function updateDateTime() {
@@ -27,6 +28,18 @@ window.onload = function() {
     setInterval(updateDateTime, 1000);
 };
 
+// 입력창에서 Enter 키로 메모 추가
+window.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('todoInput');
+    if (input) {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && input.value.trim() !== '') {
+                addTodo();
+            }
+        });
+    }
+});
+
 // 할 일 추가 함수
 function addTodo() {
     const input = document.getElementById('todoInput');
@@ -44,6 +57,7 @@ function addTodo() {
     saveTodos();
     displayTodos();
     input.value = '';
+    renderWeekCalendar(); // 캘린더 갱신
 }
 
 // 할 일 완료 여부 토글 함수
@@ -60,6 +74,7 @@ function deleteTodo(id) {
     todos = todos.filter(todo => todo.id !== id);
     saveTodos();
     displayTodos();
+    renderWeekCalendar();
 }
 
 // 모든 할 일 삭제 함수
@@ -68,6 +83,7 @@ function clearAll() {
         todos = [];
         saveTodos();
         displayTodos();
+        renderWeekCalendar();
     }
 }
 
@@ -133,4 +149,182 @@ if ('serviceWorker' in navigator) {
                 console.log('ServiceWorker registration failed: ', err);
             });
     });
+}
+
+function selectAllMemos() {
+    // 모든 메모 텍스트를 한 줄씩 모아서 하나의 문자열로 만듦
+    const allText = todos.map(todo => todo.text).join('\n');
+    // 임시 textarea 생성
+    const tempTextarea = document.createElement('textarea');
+    tempTextarea.value = allText;
+    document.body.appendChild(tempTextarea);
+    tempTextarea.select();
+    try {
+        document.execCommand('copy');
+        alert('모든 메모가 복사되었습니다!');
+    } catch (err) {
+        alert('복사에 실패했습니다. 직접 복사해 주세요.');
+    }
+    document.body.removeChild(tempTextarea);
+}
+
+// 멋진 구절 표시/입력 기능
+function renderPhraseArea() {
+    const area = document.getElementById('phraseArea');
+    const savedPhrase = localStorage.getItem('memo_phrase') || '';
+    const isEditing = area.getAttribute('data-editing') === 'true';
+    if (savedPhrase && !isEditing) {
+        area.innerHTML = `
+            <div class="phrase-box">
+                <span class="phrase-text">"${savedPhrase}"</span>
+                <button class="phrase-edit-btn" onclick="editPhrase()">수정</button>
+            </div>
+        `;
+    } else {
+        area.innerHTML = `
+            <form class="phrase-box" onsubmit="savePhrase(event)">
+                <input type="text" class="phrase-input" id="phraseInput" placeholder="멋진 구절을 입력하세요" value="${savedPhrase.replace(/"/g, '&quot;')}">
+                <button class="phrase-save-btn" type="submit">저장</button>
+            </form>
+        `;
+        setTimeout(() => {
+            const input = document.getElementById('phraseInput');
+            if (input) input.focus();
+        }, 0);
+    }
+}
+function savePhrase(e) {
+    e.preventDefault();
+    const input = document.getElementById('phraseInput');
+    const value = input.value.trim();
+    localStorage.setItem('memo_phrase', value);
+    document.getElementById('phraseArea').setAttribute('data-editing', 'false');
+    renderPhraseArea();
+}
+function editPhrase() {
+    document.getElementById('phraseArea').setAttribute('data-editing', 'true');
+    renderPhraseArea();
+}
+// 페이지 로드 시 구절 표시
+window.addEventListener('DOMContentLoaded', renderPhraseArea);
+
+// 일주일 캘린더 표시 함수
+function renderWeekCalendar() {
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const todayObj = new Date();
+    const today = todayObj.getDay();
+    // 이번 주 일요일 날짜 구하기
+    const sunday = new Date(todayObj);
+    sunday.setDate(todayObj.getDate() - today);
+    // 요일별 날짜 배열 만들기
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(sunday);
+        d.setDate(sunday.getDate() + i);
+        weekDates.push(('0' + d.getDate()).slice(-2));
+    }
+    // 요일별 메모 개수 계산 (최대 4개)
+    const counts = [0,0,0,0,0,0,0];
+    todos.forEach(todo => {
+        if (typeof todo.weekday === 'number' && counts[todo.weekday] < 4) counts[todo.weekday]++;
+    });
+    const calendar = document.getElementById('weekCalendar');
+    calendar.className = 'week-calendar';
+    calendar.innerHTML = weekDays.map((d, i) => {
+        let dots = '';
+        for (let j = 0; j < counts[i]; j++) {
+            dots += '<div class="dot"></div>';
+        }
+        for (let j = counts[i]; j < 4; j++) {
+            dots += '<div class="dot dot-empty"></div>';
+        }
+        // 입력창 표시
+        let inputHtml = '';
+        if (weekEditingIdx === i) {
+            inputHtml = `<input class='weekday-input' id='weekdayInput${i}' data-idx='${i}' placeholder='(${d}) 메모를 적어주세요' onkeydown='if(event.key==="Enter"){addWeekdayMemo(this)}'>`;
+        }
+        return `<div class="weekday${i === today ? ' today' : ''}" data-idx="${i}">
+            ${d}(${weekDates[i]})
+            <div class="dots-col">${dots}${inputHtml}</div>
+        </div>`;
+    }).join('');
+}
+window.addEventListener('DOMContentLoaded', renderWeekCalendar);
+
+// 요일 클릭 시 모달 열기
+function openWeekdayModal(idx) {
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const modal = document.getElementById('weekdayModal');
+    const title = document.getElementById('modalTitle');
+    const input = document.getElementById('modalInput');
+    modal.style.display = 'flex';
+    title.textContent = `${weekDays[idx]}요일 메모`;
+    input.value = '';
+    input.placeholder = `(${weekDays[idx]}) 메모를 적어주세요`;
+    input.setAttribute('data-idx', idx);
+    setTimeout(() => input.focus(), 0);
+}
+function closeWeekdayModal() {
+    document.getElementById('weekdayModal').style.display = 'none';
+}
+function saveWeekdayModal() {
+    const input = document.getElementById('modalInput');
+    const idx = Number(input.getAttribute('data-idx'));
+    const text = input.value.trim();
+    if (!text) return;
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const todo = {
+        id: Date.now(),
+        text: `(${weekDays[idx]}) ${text}`,
+        completed: false,
+        weekday: idx
+    };
+    todos.unshift(todo);
+    saveTodos();
+    displayTodos();
+    renderWeekCalendar();
+    closeWeekdayModal();
+}
+// 캘린더 클릭 이벤트 위임 (모달용)
+window.addEventListener('DOMContentLoaded', function() {
+    const calendar = document.getElementById('weekCalendar');
+    calendar.addEventListener('click', function(e) {
+        let target = e.target;
+        while (target && !target.classList.contains('weekday')) {
+            target = target.parentElement;
+        }
+        if (target && target.classList.contains('weekday')) {
+            const idx = Number(target.getAttribute('data-idx'));
+            openWeekdayModal(idx);
+        }
+    });
+    // 모달 버튼 이벤트
+    document.getElementById('modalSaveBtn').onclick = saveWeekdayModal;
+    document.getElementById('modalCancelBtn').onclick = closeWeekdayModal;
+    // 엔터키 입력
+    document.getElementById('modalInput').onkeydown = function(e) {
+        if (e.key === 'Enter') saveWeekdayModal();
+    };
+    // 모달 바깥 클릭 시 닫기
+    document.getElementById('weekdayModal').onclick = function(e) {
+        if (e.target === this) closeWeekdayModal();
+    };
+});
+
+function addWeekdayMemo(inputElem) {
+    const idx = Number(inputElem.getAttribute('data-idx'));
+    const text = inputElem.value.trim();
+    if (!text) return;
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const todo = {
+        id: Date.now(),
+        text: `(${weekDays[idx]}) ${text}`,
+        completed: false,
+        weekday: idx
+    };
+    todos.unshift(todo);
+    saveTodos();
+    displayTodos();
+    weekEditingIdx = null;
+    renderWeekCalendar();
 } 
