@@ -26,6 +26,7 @@ window.onload = function() {
     updateDateTime();
     // 1초마다 날짜와 시간 업데이트
     setInterval(updateDateTime, 1000);
+    renderPhraseArea();
 };
 
 // 입력창에서 Enter 키로 메모 추가
@@ -116,13 +117,36 @@ function saveTodos() {
 function displayTodos() {
     const list = document.getElementById('todoList');
     list.innerHTML = '';
+    const today = new Date().getDay();
+    // 오늘 요일 메모, 일반 메모, 지난 요일 메모로 분리
+    const todayMemos = [];
+    const normalMemos = [];
+    const pastMemos = [];
     todos.forEach(todo => {
+        if (typeof todo.weekday === 'number') {
+            if (todo.weekday === today) {
+                todayMemos.push(todo);
+            } else {
+                pastMemos.push(todo);
+            }
+        } else {
+            normalMemos.push(todo);
+        }
+    });
+    // 지난 요일 메모를 오늘에 가까운 순서로 정렬
+    pastMemos.sort((a, b) => {
+        let diffA = (a.weekday - today + 7) % 7;
+        let diffB = (b.weekday - today + 7) % 7;
+        return diffA - diffB;
+    });
+    // 오늘 요일 메모 → 일반 메모 → 지난 요일 메모 순서로 표시
+    [...todayMemos, ...normalMemos, ...pastMemos].forEach(todo => {
         const item = document.createElement('div');
         item.className = 'todo-item' + (todo.completed ? ' completed' : '');
         if (editingId === todo.id) {
             item.innerHTML = `
                 <button class=\"check-btn\" disabled>${todo.completed ? '✔️' : '☑️'}</button>
-                <input type=\"text\" id=\"editInput_${todo.id}\" value=\"${todo.text.replace(/"/g, '&quot;')}\" class=\"edit-input\" />
+                <input type=\"text\" id=\"editInput_${todo.id}\" value=\"${todo.text.replace(/\"/g, '&quot;')}\" class=\"edit-input\" />
                 <button class=\"edit-btn\" onclick=\"saveEdit(${todo.id})\">✔️</button>
                 <button class=\"delete-btn\" onclick=\"deleteTodo(${todo.id})\">🗑️</button>
             `;
@@ -172,18 +196,21 @@ function selectAllMemos() {
 function renderPhraseArea() {
     const area = document.getElementById('phraseArea');
     const savedPhrase = localStorage.getItem('memo_phrase') || '';
-    const isEditing = area.getAttribute('data-editing') === 'true';
-    if (savedPhrase && !isEditing) {
+    if (savedPhrase) {
         area.innerHTML = `
             <div class="phrase-box">
-                <span class="phrase-text">"${savedPhrase}"</span>
-                <button class="phrase-edit-btn" onclick="editPhrase()">수정</button>
+                <span class="phrase-text">${savedPhrase}</span>
+                <span class="phrase-dot" id="phraseDot"></span>
             </div>
         `;
+        setTimeout(() => {
+            const dot = document.getElementById('phraseDot');
+            if(dot) dot.addEventListener('click', openPhraseModal);
+        }, 0);
     } else {
         area.innerHTML = `
             <form class="phrase-box" onsubmit="savePhrase(event)">
-                <input type="text" class="phrase-input" id="phraseInput" placeholder="멋진 구절을 입력하세요" value="${savedPhrase.replace(/"/g, '&quot;')}">
+                <input type="text" class="phrase-input" id="phraseInput" placeholder="멋진 구절을 입력하세요">
                 <button class="phrase-save-btn" type="submit">저장</button>
             </form>
         `;
@@ -193,20 +220,41 @@ function renderPhraseArea() {
         }, 0);
     }
 }
-function savePhrase(e) {
-    e.preventDefault();
-    const input = document.getElementById('phraseInput');
+
+function openPhraseModal() {
+    const modal = document.getElementById('phraseModal');
+    const input = document.getElementById('phraseModalInput');
+    input.value = localStorage.getItem('memo_phrase') || '';
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        input.focus();
+        input.select(); // 기존 문구 전체 선택
+    }, 0);
+}
+function closePhraseModal() {
+    document.getElementById('phraseModal').style.display = 'none';
+}
+function savePhraseModal() {
+    const input = document.getElementById('phraseModalInput');
     const value = input.value.trim();
+    if (!value) {
+        alert('멋진 문구는 비워둘 수 없습니다!');
+        return;
+    }
     localStorage.setItem('memo_phrase', value);
-    document.getElementById('phraseArea').setAttribute('data-editing', 'false');
+    closePhraseModal();
     renderPhraseArea();
 }
-function editPhrase() {
-    document.getElementById('phraseArea').setAttribute('data-editing', 'true');
-    renderPhraseArea();
-}
-// 페이지 로드 시 구절 표시
-window.addEventListener('DOMContentLoaded', renderPhraseArea);
+window.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('phraseModalSaveBtn').onclick = savePhraseModal;
+    document.getElementById('phraseModalCancelBtn').onclick = closePhraseModal;
+    document.getElementById('phraseModalInput').onkeydown = function(e) {
+        if (e.key === 'Enter') savePhraseModal();
+    };
+    document.getElementById('phraseModal').onclick = function(e) {
+        if (e.target === this) closePhraseModal();
+    };
+});
 
 // 일주일 캘린더 표시 함수
 function renderWeekCalendar() {

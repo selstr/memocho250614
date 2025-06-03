@@ -164,10 +164,11 @@ h1 {
 
 .phrase-box {
     display: flex;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
     margin-bottom: 16px;
-    justify-content: center;
-    align-items: center;
+    width: 100%;
 }
 .phrase-input {
     flex: 1;
@@ -196,7 +197,23 @@ h1 {
     margin-bottom: 10px;
     text-align: center;
     font-weight: bold;
-    flex: 1;
+    flex: 0 0 auto;
+    display: inline-block;
+}
+.phrase-dot {
+    display: inline-block !important;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #6c63ff;
+    margin-left: 8px;
+    vertical-align: middle;
+    cursor: pointer;
+    transition: background 0.2s;
+    z-index: 1100;
+}
+.phrase-dot:hover {
+    background: #554ee2;
 }
 
 .week-calendar {
@@ -312,4 +329,8 @@ h1 {
 }
 .modal-btn:hover {
     background: #554ee2;
+}
+
+.phrase-edit-btn {
+    display: none;
 } 
