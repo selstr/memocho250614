@@ -375,4 +375,4 @@ function addWeekdayMemo(inputElem) {
     displayTodos();
     weekEditingIdx = null;
     renderWeekCalendar();
-} //
+} 
