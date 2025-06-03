@@ -202,8 +202,8 @@ h1 {
 }
 .phrase-dot {
     display: inline-block !important;
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: #6c63ff;
     margin-left: 8px;
