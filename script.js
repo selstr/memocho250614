@@ -234,22 +234,22 @@ function openPhraseModal() {
 function closePhraseModal() {
     document.getElementById('phraseModal').style.display = 'none';
 }
-function savePhraseModal() {
-    const input = document.getElementById('phraseModalInput');
+function savePhrase(e) {
+    e.preventDefault();
+    const input = document.getElementById('phraseInput');
     const value = input.value.trim();
     if (!value) {
         alert('멋진 문구는 비워둘 수 없습니다!');
         return;
     }
     localStorage.setItem('memo_phrase', value);
-    closePhraseModal();
     renderPhraseArea();
 }
 window.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('phraseModalSaveBtn').onclick = savePhraseModal;
+    document.getElementById('phraseModalSaveBtn').onclick = savePhrase;
     document.getElementById('phraseModalCancelBtn').onclick = closePhraseModal;
     document.getElementById('phraseModalInput').onkeydown = function(e) {
-        if (e.key === 'Enter') savePhraseModal();
+        if (e.key === 'Enter') savePhrase();
     };
     document.getElementById('phraseModal').onclick = function(e) {
         if (e.target === this) closePhraseModal();
