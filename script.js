@@ -2,6 +2,8 @@
 let todos = JSON.parse(localStorage.getItem('todos')) || [];
 let editingId = null;
 let weekEditingIdx = null;
+let currentWeekOffset = 0; // 0: 이번 주, 1: 다음 주 ... 4: 5주 후
+const MAX_WEEK_OFFSET = 4;
 
 // 날짜와 시간을 표시하는 함수
 function updateDateTime() {
@@ -263,39 +265,54 @@ function renderWeekCalendar() {
     const today = todayObj.getDay();
     // 이번 주 일요일 날짜 구하기
     const sunday = new Date(todayObj);
-    sunday.setDate(todayObj.getDate() - today);
+    sunday.setDate(todayObj.getDate() - today + currentWeekOffset * 7);
     // 요일별 날짜 배열 만들기
     const weekDates = [];
+    const weekDateObjs = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(sunday);
         d.setDate(sunday.getDate() + i);
         weekDates.push(('0' + d.getDate()).slice(-2));
+        weekDateObjs.push(new Date(d));
     }
-    // 요일별 메모 개수 계산 (최대 4개)
+    // 요일별 해당 날짜에 입력된 메모 개수 계산 (최대 3개)
     const counts = [0,0,0,0,0,0,0];
     todos.forEach(todo => {
-        if (typeof todo.weekday === 'number' && counts[todo.weekday] < 4) counts[todo.weekday]++;
+        if (typeof todo.weekday === 'number' && todo.dateStr) {
+            for (let i = 0; i < 7; i++) {
+                // 메모의 날짜와 weekDateObjs[i]가 같고, 요일도 같아야 함
+                if (todo.weekday === i && todo.dateStr === weekDateObjs[i].toISOString().slice(0,10)) {
+                    counts[i]++;
+                }
+            }
+        }
     });
     const calendar = document.getElementById('weekCalendar');
     calendar.className = 'week-calendar';
     calendar.innerHTML = weekDays.map((d, i) => {
         let dots = '';
-        for (let j = 0; j < counts[i]; j++) {
+        const dotCount = Math.min(counts[i], 3);
+        for (let j = 0; j < dotCount; j++) {
             dots += '<div class="dot"></div>';
         }
-        for (let j = counts[i]; j < 4; j++) {
+        for (let j = dotCount; j < 3; j++) {
             dots += '<div class="dot dot-empty"></div>';
         }
         // 입력창 표시
         let inputHtml = '';
-        if (weekEditingIdx === i) {
+        if (weekEditingIdx === i && currentWeekOffset === 0) {
             inputHtml = `<input class='weekday-input' id='weekdayInput${i}' data-idx='${i}' placeholder='(${d}) 메모를 적어주세요' onkeydown='if(event.key==="Enter"){addWeekdayMemo(this)}'>`;
         }
-        return `<div class="weekday${i === today ? ' today' : ''}" data-idx="${i}">
+        // 오늘 표시(이번 주만)
+        const isToday = (currentWeekOffset === 0 && i === today);
+        return `<div class="weekday${isToday ? ' today' : ''}" data-idx="${i}">
             ${d}(${weekDates[i]})
             <div class="dots-col">${dots}${inputHtml}</div>
         </div>`;
     }).join('');
+    // 버튼 표시/숨김
+    document.getElementById('prevWeekBtn').style.display = currentWeekOffset > 0 ? '' : 'none';
+    document.getElementById('nextWeekBtn').style.display = currentWeekOffset < MAX_WEEK_OFFSET ? '' : 'none';
 }
 window.addEventListener('DOMContentLoaded', renderWeekCalendar);
 
@@ -321,11 +338,20 @@ function saveWeekdayModal() {
     const text = input.value.trim();
     if (!text) return;
     const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    // 현재 보고 있는 주의 해당 요일 날짜 구하기
+    const todayObj = new Date();
+    const today = todayObj.getDay();
+    const sunday = new Date(todayObj);
+    sunday.setDate(todayObj.getDate() - today + currentWeekOffset * 7);
+    const memoDate = new Date(sunday);
+    memoDate.setDate(sunday.getDate() + idx);
+    const dateStr = memoDate.toISOString().slice(0,10);
     const todo = {
         id: Date.now(),
         text: `(${weekDays[idx]}) ${text}`,
         completed: false,
-        weekday: idx
+        weekday: idx,
+        dateStr: dateStr
     };
     todos.unshift(todo);
     saveTodos();
@@ -364,15 +390,98 @@ function addWeekdayMemo(inputElem) {
     const text = inputElem.value.trim();
     if (!text) return;
     const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    // 현재 보고 있는 주의 해당 요일 날짜 구하기
+    const todayObj = new Date();
+    const today = todayObj.getDay();
+    const sunday = new Date(todayObj);
+    sunday.setDate(todayObj.getDate() - today + currentWeekOffset * 7);
+    const memoDate = new Date(sunday);
+    memoDate.setDate(sunday.getDate() + idx);
+    const dateStr = memoDate.toISOString().slice(0,10);
     const todo = {
         id: Date.now(),
         text: `(${weekDays[idx]}) ${text}`,
         completed: false,
-        weekday: idx
+        weekday: idx,
+        dateStr: dateStr
     };
     todos.unshift(todo);
     saveTodos();
     displayTodos();
     weekEditingIdx = null;
     renderWeekCalendar();
-} //
+}
+
+// weekCalendar 슬라이드/버튼 이벤트
+window.addEventListener('DOMContentLoaded', function() {
+    const prevBtn = document.getElementById('prevWeekBtn');
+    const nextBtn = document.getElementById('nextWeekBtn');
+    prevBtn.onclick = function() {
+        if(currentWeekOffset > 0) {
+            currentWeekOffset--;
+            weekEditingIdx = null;
+            renderWeekCalendar();
+        }
+    };
+    nextBtn.onclick = function() {
+        if(currentWeekOffset < MAX_WEEK_OFFSET) {
+            currentWeekOffset++;
+            weekEditingIdx = null;
+            renderWeekCalendar();
+        }
+    };
+    // 마우스 드래그/터치 슬라이드 이벤트
+    let startX = null;
+    let dragging = false;
+    const wrapper = document.getElementById('weekCalendarWrapper');
+    // PC: 마우스
+    wrapper.addEventListener('mousedown', function(e) {
+        startX = e.clientX;
+        dragging = true;
+    });
+    wrapper.addEventListener('mousemove', function(e) {
+        if(!dragging) return;
+        const diff = e.clientX - startX;
+        if(Math.abs(diff) > 40) {
+            if(diff > 0 && currentWeekOffset > 0) {
+                currentWeekOffset--;
+                weekEditingIdx = null;
+                renderWeekCalendar();
+            } else if(diff < 0 && currentWeekOffset < MAX_WEEK_OFFSET) {
+                currentWeekOffset++;
+                weekEditingIdx = null;
+                renderWeekCalendar();
+            }
+            dragging = false;
+        }
+    });
+    wrapper.addEventListener('mouseup', function(e) {
+        dragging = false;
+    });
+    wrapper.addEventListener('mouseleave', function(e) {
+        dragging = false;
+    });
+    // 모바일: 터치
+    wrapper.addEventListener('touchstart', function(e) {
+        if(e.touches.length === 1) startX = e.touches[0].clientX;
+    });
+    wrapper.addEventListener('touchmove', function(e) {
+        if(startX === null) return;
+        const diff = e.touches[0].clientX - startX;
+        if(Math.abs(diff) > 40) {
+            if(diff > 0 && currentWeekOffset > 0) {
+                currentWeekOffset--;
+                weekEditingIdx = null;
+                renderWeekCalendar();
+            } else if(diff < 0 && currentWeekOffset < MAX_WEEK_OFFSET) {
+                currentWeekOffset++;
+                weekEditingIdx = null;
+                renderWeekCalendar();
+            }
+            startX = null;
+        }
+    });
+    wrapper.addEventListener('touchend', function(e) {
+        startX = null;
+    });
+});

@@ -18,7 +18,13 @@
         <h1>메 모</h1>
         <p class="desc" id="currentDateTime"></p>
         <div id="phraseArea"></div>
-        <div id="weekCalendar"></div>
+        <div style="position:relative;">
+            <button id="prevWeekBtn" style="position:absolute;left:-32px;top:18px;z-index:2;display:none;">◀</button>
+            <button id="nextWeekBtn" style="position:absolute;right:-32px;top:18px;z-index:2;display:none;">▶</button>
+            <div id="weekCalendarWrapper" style="overflow:hidden;">
+                <div id="weekCalendar"></div>
+            </div>
+        </div>
         <div class="todo-input-wrap">
             <input type="text" id="todoInput" placeholder="여기에 메모를 적어주세요">
             <button id="addBtn" onclick="addTodo()">+</button>
