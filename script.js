@@ -198,6 +198,19 @@ if ('serviceWorker' in navigator) {
 }
 
 function selectAllMemos() {
+    // 복사한 시간 구하기
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = weekdays[now.getDay()];
+    const copyTime = `${year}-${month}-${day}-${weekday}-${hours}:${minutes}:${seconds}`;
+    // 멋진 구절 가져오기
+    const phrase = localStorage.getItem('memo_phrase') || '';
     // displayTodos와 동일한 순서로 정렬
     const today = new Date().getDay();
     const todayMemos = [];
@@ -221,14 +234,22 @@ function selectAllMemos() {
     });
     const ordered = [...todayMemos, ...normalMemos, ...pastMemos];
     const allText = ordered.map(todo => todo.text).join('\n');
+    // 최종 복사 텍스트 조합
+    let copyText = `${copyTime}`;
+    if (phrase) {
+        copyText += `\n(${phrase})`;
+    }
+    if (allText) {
+        copyText += `\n${allText}`;
+    }
     // 임시 textarea 생성
     const tempTextarea = document.createElement('textarea');
-    tempTextarea.value = allText;
+    tempTextarea.value = copyText;
     document.body.appendChild(tempTextarea);
     tempTextarea.select();
     try {
         document.execCommand('copy');
-        alert('모든 메모가 복사되었습니다!');
+        alert('모든 메모와 멋진 구절이 복사되었습니다!');
     } catch (err) {
         alert('복사에 실패했습니다. 직접 복사해 주세요.');
     }
