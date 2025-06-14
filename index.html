@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>메모 앱</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -12,6 +12,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="메모 앱">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
     <div class="container">
@@ -19,14 +22,12 @@
         <p class="desc" id="currentDateTime"></p>
         <div id="phraseArea"></div>
         <div style="position:relative;">
-            <button id="prevWeekBtn" style="position:absolute;left:-32px;top:18px;z-index:2;display:none;">◀</button>
-            <button id="nextWeekBtn" style="position:absolute;right:-32px;top:18px;z-index:2;display:none;">▶</button>
             <div id="weekCalendarWrapper" style="overflow:hidden;">
-                <div id="weekCalendar"></div>
+        <div id="weekCalendar"></div>
             </div>
         </div>
         <div class="todo-input-wrap">
-            <input type="text" id="todoInput" placeholder="여기에 메모를 적어주세요">
+            <input type="text" id="todoInput" placeholder="여기에 메모를 적어주세요" autocomplete="on" autocapitalize="off" spellcheck="false">
             <button id="addBtn" onclick="addTodo()">+</button>
         </div>
         <div class="todo-list" id="todoList"></div>

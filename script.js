@@ -35,6 +35,17 @@ window.onload = function() {
 window.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('todoInput');
     if (input) {
+        // 모바일 PWA에서 입력창 터치 시 키보드가 잘 뜨도록 여러 번 focus 시도
+        input.addEventListener('touchend', function() {
+            setTimeout(() => input.focus(), 0);
+            setTimeout(() => input.focus(), 100);
+            setTimeout(() => input.focus(), 200);
+        });
+        input.addEventListener('click', function() {
+            setTimeout(() => input.focus(), 0);
+            setTimeout(() => input.focus(), 100);
+            setTimeout(() => input.focus(), 200);
+        });
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && input.value.trim() !== '') {
                 addTodo();
@@ -60,7 +71,10 @@ function addTodo() {
     saveTodos();
     displayTodos();
     input.value = '';
-    renderWeekCalendar(); // 캘린더 갱신
+    setTimeout(() => input.focus(), 0);
+    setTimeout(() => input.focus(), 100);
+    setTimeout(() => input.focus(), 200);
+    renderWeekCalendar();
 }
 
 // 할 일 완료 여부 토글 함수
@@ -119,29 +133,34 @@ function saveTodos() {
 function displayTodos() {
     const list = document.getElementById('todoList');
     list.innerHTML = '';
-    const today = new Date().getDay();
-    // 오늘 요일 메모, 일반 메모, 지난 요일 메모로 분리
+    const todayObj = new Date();
+    const todayStr = todayObj.toISOString().slice(0,10);
+    // 오늘 날짜 메모, 일반 메모, 지난 요일 메모로 분리
     const todayMemos = [];
     const normalMemos = [];
     const pastMemos = [];
     todos.forEach(todo => {
-        if (typeof todo.weekday === 'number') {
-            if (todo.weekday === today) {
+        if (todo.dateStr === todayStr) {
                 todayMemos.push(todo);
-            } else {
+        } else if (typeof todo.weekday === 'number') {
                 pastMemos.push(todo);
-            }
         } else {
             normalMemos.push(todo);
         }
     });
-    // 지난 요일 메모를 오늘에 가까운 순서로 정렬
+    // 지난 요일 메모를 오늘에 가까운 순서로 정렬 (요일 정보가 있는 경우만)
+    const today = todayObj.getDay();
     pastMemos.sort((a, b) => {
         let diffA = (a.weekday - today + 7) % 7;
         let diffB = (b.weekday - today + 7) % 7;
         return diffA - diffB;
     });
-    // 오늘 요일 메모 → 일반 메모 → 지난 요일 메모 순서로 표시
+    // 오늘 날짜 메모 → 일반 메모 → 지난 요일 메모 순서로 표시
+    todayMemos.sort((a, b) => {
+        // id는 Date.now()로 생성되므로, id가 더 크면 더 늦게 입력된 메모임
+        // 하지만 dateStr이 같으므로, id 기준으로 오름차순(오래된 것부터) 정렬
+        return a.id - b.id;
+    });
     [...todayMemos, ...normalMemos, ...pastMemos].forEach(todo => {
         const item = document.createElement('div');
         item.className = 'todo-item' + (todo.completed ? ' completed' : '');
@@ -200,22 +219,26 @@ function renderPhraseArea() {
     const savedPhrase = localStorage.getItem('memo_phrase') || '';
     if (savedPhrase) {
         area.innerHTML = `
-            <div class="phrase-box">
-                <span class="phrase-text">${savedPhrase}</span>
-                <span class="phrase-dot" id="phraseDot"></span>
-            </div>
-        `;
+            <div class=\"phrase-box\">\n                <span class=\"phrase-text\" id=\"phraseText\">${savedPhrase}</span>\n            </div>\n        `;
         setTimeout(() => {
-            const dot = document.getElementById('phraseDot');
-            if(dot) dot.addEventListener('click', openPhraseModal);
+            const text = document.getElementById('phraseText');
+            if(text) {
+                let lastTap = 0;
+                text.addEventListener('dblclick', openPhraseModal);
+                text.addEventListener('touchend', function(e) {
+                    const now = Date.now();
+                    if (now - lastTap < 400) {
+                        openPhraseModal();
+                        lastTap = 0;
+                    } else {
+                        lastTap = now;
+                    }
+                });
+            }
         }, 0);
     } else {
         area.innerHTML = `
-            <form class="phrase-box" onsubmit="savePhrase(event)">
-                <input type="text" class="phrase-input" id="phraseInput" placeholder="멋진 구절을 입력하세요">
-                <button class="phrase-save-btn" type="submit">저장</button>
-            </form>
-        `;
+            <form class=\"phrase-box\" onsubmit=\"savePhrase(event)\">\n                <input type=\"text\" class=\"phrase-input\" id=\"phraseInput\" placeholder=\"멋진 구절을 입력하세요\">\n                <button class=\"phrase-save-btn\" type=\"submit\">저장</button>\n            </form>\n        `;
         setTimeout(() => {
             const input = document.getElementById('phraseInput');
             if (input) input.focus();
@@ -237,8 +260,10 @@ function closePhraseModal() {
     document.getElementById('phraseModal').style.display = 'none';
 }
 function savePhrase(e) {
-    e.preventDefault();
-    const input = document.getElementById('phraseInput');
+    // e가 있을 때만 preventDefault (form submit), 없으면 무시
+    if (e && e.preventDefault) e.preventDefault();
+    // phraseInput(최초 입력) 또는 phraseModalInput(수정)에서 값 가져오기
+    const input = document.getElementById('phraseInput') || document.getElementById('phraseModalInput');
     const value = input.value.trim();
     if (!value) {
         alert('멋진 문구는 비워둘 수 없습니다!');
@@ -246,6 +271,7 @@ function savePhrase(e) {
     }
     localStorage.setItem('memo_phrase', value);
     renderPhraseArea();
+    closePhraseModal(); // 모달이 열려있으면 닫기
 }
 window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('phraseModalSaveBtn').onclick = savePhrase;
@@ -269,19 +295,21 @@ function renderWeekCalendar() {
     // 요일별 날짜 배열 만들기
     const weekDates = [];
     const weekDateObjs = [];
+    const weekDateStrs = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(sunday);
         d.setDate(sunday.getDate() + i);
         weekDates.push(('0' + d.getDate()).slice(-2));
         weekDateObjs.push(new Date(d));
+        weekDateStrs.push(d.toISOString().slice(0,10));
     }
     // 요일별 해당 날짜에 입력된 메모 개수 계산 (최대 3개)
     const counts = [0,0,0,0,0,0,0];
     todos.forEach(todo => {
         if (typeof todo.weekday === 'number' && todo.dateStr) {
             for (let i = 0; i < 7; i++) {
-                // 메모의 날짜와 weekDateObjs[i]가 같고, 요일도 같아야 함
-                if (todo.weekday === i && todo.dateStr === weekDateObjs[i].toISOString().slice(0,10)) {
+                // 메모의 날짜와 weekDateStrs[i]가 같고, 요일도 같아야 함
+                if (todo.weekday === i && todo.dateStr === weekDateStrs[i]) {
                     counts[i]++;
                 }
             }
@@ -310,9 +338,8 @@ function renderWeekCalendar() {
             <div class="dots-col">${dots}${inputHtml}</div>
         </div>`;
     }).join('');
-    // 버튼 표시/숨김
-    document.getElementById('prevWeekBtn').style.display = currentWeekOffset > 0 ? '' : 'none';
-    document.getElementById('nextWeekBtn').style.display = currentWeekOffset < MAX_WEEK_OFFSET ? '' : 'none';
+    // 슬라이드 후 항상 transform을 0으로 초기화
+    calendar.style.transform = 'translateX(0)';
 }
 window.addEventListener('DOMContentLoaded', renderWeekCalendar);
 
@@ -414,74 +441,120 @@ function addWeekdayMemo(inputElem) {
 
 // weekCalendar 슬라이드/버튼 이벤트
 window.addEventListener('DOMContentLoaded', function() {
-    const prevBtn = document.getElementById('prevWeekBtn');
-    const nextBtn = document.getElementById('nextWeekBtn');
-    prevBtn.onclick = function() {
-        if(currentWeekOffset > 0) {
-            currentWeekOffset--;
-            weekEditingIdx = null;
-            renderWeekCalendar();
-        }
-    };
-    nextBtn.onclick = function() {
-        if(currentWeekOffset < MAX_WEEK_OFFSET) {
-            currentWeekOffset++;
-            weekEditingIdx = null;
-            renderWeekCalendar();
-        }
-    };
-    // 마우스 드래그/터치 슬라이드 이벤트
     let startX = null;
     let dragging = false;
+    let lastDiff = 0;
     const wrapper = document.getElementById('weekCalendarWrapper');
+    const calendar = document.getElementById('weekCalendar');
     // PC: 마우스
     wrapper.addEventListener('mousedown', function(e) {
         startX = e.clientX;
         dragging = true;
+        lastDiff = 0;
+        calendar.style.transition = 'none';
     });
     wrapper.addEventListener('mousemove', function(e) {
         if(!dragging) return;
         const diff = e.clientX - startX;
-        if(Math.abs(diff) > 40) {
-            if(diff > 0 && currentWeekOffset > 0) {
-                currentWeekOffset--;
-                weekEditingIdx = null;
-                renderWeekCalendar();
-            } else if(diff < 0 && currentWeekOffset < MAX_WEEK_OFFSET) {
-                currentWeekOffset++;
-                weekEditingIdx = null;
-                renderWeekCalendar();
+        lastDiff = diff;
+        calendar.style.transform = `translateX(${diff}px)`;
+    });
+    // mouseup을 window에 등록하여 캘린더 영역 밖에서도 동작
+    window.addEventListener('mouseup', function(e) {
+        if(!dragging) return;
+        dragging = false;
+        calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+        if(Math.abs(lastDiff) > 40) {
+            // 방향 조건: 왼쪽(음수) → 다음주, 오른쪽(양수) → 이전주
+            if(lastDiff < 0 && currentWeekOffset < MAX_WEEK_OFFSET) {
+                calendar.style.transform = 'translateX(-100vw)';
+                setTimeout(() => {
+                    currentWeekOffset++;
+                    weekEditingIdx = null;
+                    renderWeekCalendar();
+                    calendar.style.transition = 'none';
+                    calendar.style.transform = 'translateX(100vw)';
+                    setTimeout(() => {
+                        calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+                        calendar.style.transform = 'translateX(0)';
+                    }, 10);
+                }, 250);
+            } else if(lastDiff > 0 && currentWeekOffset > 0) {
+                calendar.style.transform = 'translateX(100vw)';
+                setTimeout(() => {
+                    currentWeekOffset--;
+                    weekEditingIdx = null;
+                    renderWeekCalendar();
+                    calendar.style.transition = 'none';
+                    calendar.style.transform = 'translateX(-100vw)';
+                    setTimeout(() => {
+                        calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+                        calendar.style.transform = 'translateX(0)';
+                    }, 10);
+                }, 250);
+            } else {
+                calendar.style.transform = 'translateX(0)';
             }
-            dragging = false;
+        } else {
+            calendar.style.transform = 'translateX(0)';
         }
     });
-    wrapper.addEventListener('mouseup', function(e) {
-        dragging = false;
-    });
     wrapper.addEventListener('mouseleave', function(e) {
-        dragging = false;
+        if(dragging) {
+            dragging = false;
+            calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+            calendar.style.transform = 'translateX(0)';
+        }
     });
     // 모바일: 터치
     wrapper.addEventListener('touchstart', function(e) {
-        if(e.touches.length === 1) startX = e.touches[0].clientX;
+        if(e.touches.length === 1) {
+            startX = e.touches[0].clientX;
+            lastDiff = 0;
+            calendar.style.transition = 'none';
+        }
     });
     wrapper.addEventListener('touchmove', function(e) {
         if(startX === null) return;
         const diff = e.touches[0].clientX - startX;
-        if(Math.abs(diff) > 40) {
-            if(diff > 0 && currentWeekOffset > 0) {
-                currentWeekOffset--;
-                weekEditingIdx = null;
-                renderWeekCalendar();
-            } else if(diff < 0 && currentWeekOffset < MAX_WEEK_OFFSET) {
-                currentWeekOffset++;
-                weekEditingIdx = null;
-                renderWeekCalendar();
-            }
-            startX = null;
-        }
+        lastDiff = diff;
+        calendar.style.transform = `translateX(${diff}px)`;
     });
     wrapper.addEventListener('touchend', function(e) {
+        calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+        if(Math.abs(lastDiff) > 40) {
+            if(lastDiff < 0 && currentWeekOffset < MAX_WEEK_OFFSET) {
+                calendar.style.transform = 'translateX(-100vw)';
+                setTimeout(() => {
+                    currentWeekOffset++;
+                    weekEditingIdx = null;
+                    renderWeekCalendar();
+                    calendar.style.transition = 'none';
+                    calendar.style.transform = 'translateX(100vw)';
+                    setTimeout(() => {
+                        calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+                        calendar.style.transform = 'translateX(0)';
+                    }, 10);
+                }, 250);
+            } else if(lastDiff > 0 && currentWeekOffset > 0) {
+                calendar.style.transform = 'translateX(100vw)';
+                setTimeout(() => {
+                    currentWeekOffset--;
+                    weekEditingIdx = null;
+                    renderWeekCalendar();
+                    calendar.style.transition = 'none';
+                    calendar.style.transform = 'translateX(-100vw)';
+                    setTimeout(() => {
+                        calendar.style.transition = 'transform 0.25s cubic-bezier(0.4,0.2,0.2,1)';
+                        calendar.style.transform = 'translateX(0)';
+                    }, 10);
+                }, 250);
+            } else {
+                calendar.style.transform = 'translateX(0)';
+            }
+        } else {
+            calendar.style.transform = 'translateX(0)';
+        }
         startX = null;
     });
 });
