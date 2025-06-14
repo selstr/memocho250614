@@ -17,8 +17,9 @@ function updateDateTime() {
     
     const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
     const weekday = weekdays[now.getDay()];
-    
-    const dateTimeStr = `${year}-${month}-${day}-${weekday}-${hours}:${minutes}:${seconds}`;
+    // 메모 개수 표시 추가
+    const memoCount = todos.length;
+    const dateTimeStr = `${year}-${month}-${day}-${weekday}-${hours}:${minutes}:${seconds}  (${memoCount})`;
     document.getElementById('currentDateTime').textContent = dateTimeStr;
 }
 
@@ -197,8 +198,29 @@ if ('serviceWorker' in navigator) {
 }
 
 function selectAllMemos() {
-    // 모든 메모 텍스트를 한 줄씩 모아서 하나의 문자열로 만듦
-    const allText = todos.map(todo => todo.text).join('\n');
+    // displayTodos와 동일한 순서로 정렬
+    const today = new Date().getDay();
+    const todayMemos = [];
+    const normalMemos = [];
+    const pastMemos = [];
+    todos.forEach(todo => {
+        if (typeof todo.weekday === 'number') {
+            if (todo.weekday === today) {
+                todayMemos.push(todo);
+            } else {
+                pastMemos.push(todo);
+            }
+        } else {
+            normalMemos.push(todo);
+        }
+    });
+    pastMemos.sort((a, b) => {
+        let diffA = (a.weekday - today + 7) % 7;
+        let diffB = (b.weekday - today + 7) % 7;
+        return diffA - diffB;
+    });
+    const ordered = [...todayMemos, ...normalMemos, ...pastMemos];
+    const allText = ordered.map(todo => todo.text).join('\n');
     // 임시 textarea 생성
     const tempTextarea = document.createElement('textarea');
     tempTextarea.value = allText;
